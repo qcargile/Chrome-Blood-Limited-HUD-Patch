@@ -1,0 +1,77 @@
+import MinimapVisibilityFix.*
+import LimitedHudCommon.*
+import LimitedHudConfig.MinimapModuleConfig
+import LimitedHudCommon.LHUDConfigUpdatedEvent
+import LimitedHudCommon.LHUDEvent
+
+@addMethod(MinimapContainerController)
+protected cb func OnLHUDEvent(evt: ref<LHUDEvent>) -> Void {
+  if Equals(evt.type, LHUDEventType.ScannerDetails) {
+    return;
+  };
+  this.ConsumeLHUDEvent(evt);
+  this.DetermineCurrentVisibility();
+  if Equals(evt.type, LHUDEventType.GlobalHotkey) || Equals(evt.type, LHUDEventType.MinimapHotkey) {
+    this.MVFRefreshContextVisibility();
+  };
+}
+
+@addMethod(MinimapContainerController)
+public func DetermineCurrentVisibility() -> Void {
+  if !this.MVFPrepareVisibility() {
+    return;
+  };
+  if !this.lhudConfig.IsEnabled {
+    this.MVFReconcileOpacity();
+    return ;
+  };
+
+  let showForGlobalHotkey: Bool = this.lhud_isGlobalFlagToggled && this.lhudConfig.BindToGlobalHotkey;
+  let showForMinimapHotkey: Bool = this.lhud_isMinimapFlagToggled;
+  let showForCombat: Bool = this.lhud_isCombatActive && this.lhudConfig.ShowInCombat;
+  let showForOutOfCombat: Bool = this.lhud_isOutOfCombatActive && this.lhudConfig.ShowOutOfCombat;
+  let showForStealth: Bool = this.lhud_isStealthActive && this.lhudConfig.ShowInStealth;
+  let showForVehicle: Bool = this.lhud_isInVehicle && this.lhudConfig.ShowInVehicle;
+  let showForAutoDrive: Bool = this.lhud_inAutoDrive && this.lhudConfig.ShowWithAutoDrive;
+  let showForScanner: Bool = this.lhud_isScannerActive && this.lhudConfig.ShowWithScanner;
+  let showForWeapon: Bool = this.lhud_isWeaponUnsheathed && this.lhudConfig.ShowWithWeapon;
+  let showForZoom: Bool = this.lhud_isZoomActive && this.lhudConfig.ShowWithZoom;
+  let showForWanted: Bool = this.lhud_isWanted && this.lhudConfig.ShowWhenWanted;
+  let showForArea: Bool = this.lhud_isInDangerZone && this.lhudConfig.ShowInDangerArea;
+  let scannerDetailsVisible: Bool = this.lhud_isScannerDetailsActive;
+  if this.lhudConfig.ShowInVehicleWithMarkers {
+    showForVehicle = this.lhud_isInVehicle && this.lhud_hasTrackedMarkers;
+  };
+
+  let isVisible: Bool = showForGlobalHotkey || showForMinimapHotkey || showForCombat || showForOutOfCombat || showForStealth || showForVehicle || showForAutoDrive || showForScanner || showForWeapon || showForZoom || showForWanted || showForArea;
+  if this.lhud_isBraindanceActive || scannerDetailsVisible { isVisible = false; };
+  if NotEquals(this.lhud_isVisibleNow, isVisible) {
+    this.lhud_isVisibleNow = isVisible;
+    if isVisible {
+      this.MVFAnimateAlpha(this.GetRootWidget(), this.lhudConfig.Opacity, 0.3);
+    } else {
+      this.MVFAnimateAlpha(this.GetRootWidget(), 0.0, 0.3);
+    };
+  };
+  this.MVFReconcileOpacity();
+}
+
+@addField(MinimapContainerController)
+private let lhudConfig: ref<MinimapModuleConfig>;
+
+@wrapMethod(MinimapContainerController)
+protected cb func OnInitialize() -> Bool {
+  wrappedMethod();
+  this.lhudConfig = new MinimapModuleConfig();
+  if this.lhudConfig.IsEnabled {
+    this.lhud_isVisibleNow = false;
+    this.GetRootWidget().SetOpacity(0.0);
+    this.OnInitializeFinished();
+  };
+}
+
+@addMethod(MinimapContainerController)
+protected cb func OnLHUDConfigUpdatedEvent(evt: ref<LHUDConfigUpdatedEvent>) -> Void {
+  this.lhudConfig = new MinimapModuleConfig();
+  this.MVFRefresh();
+}
