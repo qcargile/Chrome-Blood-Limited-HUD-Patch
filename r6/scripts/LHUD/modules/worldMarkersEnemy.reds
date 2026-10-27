@@ -60,6 +60,9 @@ protected cb func OnUpdate() -> Bool {
   let shouldShow: Bool;
   let showEliteIndicator: Bool;
   let attitude: EAIAttitude = this.m_mappin.GetAttitudeTowardsPlayer();
+  if !this.m_isHostile && Equals(attitude, EAIAttitude.AIA_Hostile) && !this.m_objectMarkerVisible {
+    this.RequestForcedUpdate();
+  };
   this.m_isFriendly = Equals(attitude, EAIAttitude.AIA_Friendly);
   this.m_isFriendlyFromHack = this.m_mappin.IsFriendlyFromHack();
   this.m_isHostile = Equals(attitude, EAIAttitude.AIA_Hostile);
@@ -89,7 +92,7 @@ protected cb func OnUpdate() -> Bool {
   this.m_squadInCombat = this.m_mappin.IsSquadInCombat();
   this.m_numberOfCombatants = Cast<Int32>(this.m_mappin.GetNumberOfCombatants());
   this.m_isInCombatWithPlayer = IsDefined(ownerPuppet) && NPCPuppet.IsInCombatWithTarget(ownerPuppet, playerPuppet);
-  if this.m_mappin.HideUIDetection() || !this.m_canSeePlayer && NotEquals(this.m_currentAnimState, gameEnemyStealthAwarenessState.Combat) && this.m_numberOfCombatants >= 1 {
+  if this.m_mappin.HideUIDetection() || !this.m_mappin.GetNameplateEnabled() || !this.m_canSeePlayer && NotEquals(this.m_currentAnimState, gameEnemyStealthAwarenessState.Combat) && this.m_numberOfCombatants >= 1 {
     this.m_detectionVisible = false;
   } else {
     this.m_detectionVisible = NotEquals(this.m_currentAnimState, gameEnemyStealthAwarenessState.Relaxed) && NotEquals(this.m_currentAnimState, gameEnemyStealthAwarenessState.Combat) || this.m_animationIsPlaying;
@@ -395,8 +398,8 @@ public final func PreviewDamage(value: Int32) -> Void {
       damagePercentage = MinF(damagePercentage, currentHealthPercentage);
       renderTransformXPivot = damagePercentage < 1.0 ? (currentHealthPercentage - damagePercentage) / (1.0 - damagePercentage) : 1.0;
       offset = 100.0 + 150.0 * damagePercentage - 150.0 * currentHealthPercentage;
-      inkWidgetRef.SetRenderTransformPivot(this.m_damagePreviewWidget, new Vector2(renderTransformXPivot, 1.0));
-      inkWidgetRef.SetScale(this.m_damagePreviewWidget, new Vector2(damagePercentage, 1.0));
+      inkWidgetRef.SetRenderTransformPivot(this.m_damagePreviewWidget, Vector2(renderTransformXPivot, 1.0));
+      inkWidgetRef.SetScale(this.m_damagePreviewWidget, Vector2(damagePercentage, 1.0));
       inkWidgetRef.SetMargin(this.m_damagePreviewArrow, 0.0, -22.0, offset, 0.0);
       // if !IsDefined(this.m_damagePreviewAnimProxy) || !this.m_damagePreviewAnimProxy.IsPlaying() {
       //   animOptions.loopType = inkanimLoopType.Cycle;
